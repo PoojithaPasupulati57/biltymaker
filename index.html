@@ -103,7 +103,7 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 <!-- 3 OTP VERIFY -->
 <section class="screen" id="s-otp"><div class="center"><div class="card narrow">
   <h2>🔐 Verify OTP</h2><p class="sub" id="otpMsg">Enter the 6-digit OTP from your email</p>
-  <input id="otp" inputmode="numeric" maxlength="6" placeholder="• • • • • •" style="letter-spacing:8px;text-align:center;font-size:1.3rem">
+  <input id="otp" type="text" maxlength="6" placeholder="Aa1Bb2" autocomplete="one-time-code" style="letter-spacing:8px;text-align:center;font-size:1.3rem;font-family:monospace">
   <br><br><button class="btn" style="width:100%" onclick="verifyOTP()">Verify & Login</button>
   <p class="note"><a href="#" onclick="sendOTP();return false">Resend OTP</a></p>
 </div></div></section>
