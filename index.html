@@ -79,7 +79,7 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
       <h1>Your Paper Bilty,<br><span>Now Digital.</span> 🚚</h1>
       <p>Upload a <b>photo of your old bilty book page</b> — AI recreates it as a clean digital bilty. Fill, download PDF, and reuse forever.</p>
       <div class="steps"><b>📸 Upload photo</b><b>🤖 AI creates format</b><b>✍️ Fill details</b><b>⬇️ Download PDF</b><b>📂 Saved for copy</b></div>
-      <button class="btn pink" onclick="go('s-login')">Login with Email →</button>
+      <button class="btn pink" onclick="go('s-login')">Login with Email + PIN →</button>
     </div>
     <div class="biltyMock">
       <h3>MOTHER INDIA TRANSPORT</h3>
@@ -92,31 +92,30 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
   </div>
 </section>
 
-<!-- 2 LOGIN -->
+<!-- 2 LOGIN (PIN, no OTP, no platforms) -->
 <section class="screen" id="s-login"><div class="center"><div class="card narrow">
-  <h2>📧 Login</h2><p class="sub">Enter your email — we'll send a 6-digit OTP (free)</p>
+  <h2>🔐 Login / Sign-up</h2>
+  <p class="sub">No OTP needed — just your email + a 4-digit PIN you choose</p>
   <label>Email Address</label>
   <input id="email" type="email" placeholder="you@example.com">
-  <br><br><button class="btn" onclick="sendOTP()">Send OTP to Email</button>
-  <p class="note">OTP arrives in inbox (check Spam once). 100% free.</p>
+  <label>4-digit PIN</label>
+  <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:8px;text-align:center;font-size:1.3rem">
+  <div id="pin2wrap" style="display:none">
+    <label>Confirm PIN (first time only)</label>
+    <input id="pin2" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:8px;text-align:center;font-size:1.3rem">
+  </div>
+  <br><button class="btn" style="width:100%" onclick="loginOrSignup()">Continue →</button>
+  <p class="note" id="loginNote">First time here? Your PIN becomes your password (stored safely as a code, never plain text).</p>
 </div></div></section>
 
-<!-- 3 OTP -->
-<section class="screen" id="s-otp"><div class="center"><div class="card narrow">
-  <h2>🔐 Verify OTP</h2><p class="sub" id="otpMsg">Enter the 6-digit OTP from your email</p>
-  <input id="otp" type="tel" maxlength="6" placeholder="• • • • • •" style="letter-spacing:8px;text-align:center;font-size:1.3rem">
-  <br><br><button class="btn" onclick="verifyOTP()">Verify & Login</button>
-  <p class="note"><a href="#" onclick="sendOTP();return false">Resend OTP</a></p>
-</div></div></section>
-
-<!-- 4 PAYMENT -->
+<!-- 3 PAYMENT -->
 <section class="screen" id="s-pay"><div class="center"><div class="card narrow">
   <h2>💳 Choose a Plan</h2><p class="sub">Pay once — start creating bilties</p>
   <div class="plans">
-    <div class="plan sel" onclick="selPlan(this,99)"><h4>Monthly</h4><div class="price">₹99</div>/month</div>
-    <div class="plan" onclick="selPlan(this,999)"><h4>Yearly</h4><div class="price">₹999</div>/year</div>
+    <div class="plan sel" onclick="selPlan(this,5000,'Monthly')"><h4>Monthly</h4><div class="price">₹5,000</div>/month</div>
+    <div class="plan" onclick="selPlan(this,50000,'Yearly')"><h4>Yearly</h4><div class="price">₹50,000</div>/year<br><small>2 months free</small></div>
   </div>
-  <button class="btn pink" style="width:100%" onclick="payUPI()">📲 Pay ₹<span class="amt">99</span> via UPI (GPay/PhonePe/Paytm)</button>
+  <button class="btn pink" style="width:100%" onclick="payUPI()">📲 Pay ₹<span class="amt">5,000</span> via UPI (GPay/PhonePe/Paytm)</button>
   <img id="upiQR" style="display:none;width:200px;margin:12px auto 0;border-radius:10px;border:1px solid #ddd">
   <div id="utrBox" style="display:none;margin-top:14px">
     <label>Paid? Enter UPI reference no. (UTR) from your UPI app</label>
@@ -127,7 +126,7 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
   <p class="note">UPI money reaches the owner's bank directly — 0% fees.</p>
 </div></div></section>
 
-<!-- 5-7 APP -->
+<!-- 4 APP -->
 <section class="screen" id="s-app">
   <div class="topbar"><div class="wrap">
     <b>🚚 BiltyMaker</b><span id="userTag"></span>
@@ -193,7 +192,7 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 
 <script>
 const $=id=>document.getElementById(id);
-let otpEmail=null, planAmt=99, editId=null;
+let planAmt=5000, planType='Monthly', editId=null;
 const UPI_ID="9346013045@ybl"; // Owner UPI – customer payments land here
 const OWNER_EMAILS=['poojithapasupuleti57@gmail.com']; // owner = free forever
 const RZP_KEY=""; // optional Razorpay key, else leave ""
@@ -204,43 +203,48 @@ function tab(el,p){document.querySelectorAll('.tab').forEach(t=>t.classList.remo
  ['p-new','p-hist','p-acc'].forEach(id=>$(id).style.display=(id===p)?'block':'none');
  if(p==='p-hist')renderHist(); if(p==='p-acc')renderAcc();}
 
-/* ---- EMAIL OTP (free, server-side) ---- */
-async function sendOTP(){
+/* ---- LOGIN / SIGNUP with PIN (no OTP, no external platforms) ---- */
+async function hash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+ return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function loginOrSignup(){
  const em=$('email').value.trim().toLowerCase();
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast('Enter a valid email address');
- toast('⏳ Sending OTP…');
- try{
-  const r=await fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});
-  const j=await r.json();
-  if(!j.ok)return toast('❌ '+(j.error||'Send failed'));
-  otpEmail=em;go('s-otp');toast('📩 OTP sent to '+em);
- }catch(e){toast('❌ Network error');}
-}
-async function verifyOTP(){
- const r=await fetch('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:otpEmail,otp:$('otp').value})});
- const j=await r.json();
- if(!j.ok)return toast('❌ '+j.error);
- const isOwner=OWNER_EMAILS.includes(otpEmail);
- const pay=JSON.parse(localStorage.getItem('bm_paid_'+otpEmail)||'null');
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast('Enter a valid email');
+ const pin=$('pin').value.trim();
+ if(!/^\d{4}$/.test(pin))return toast('PIN must be 4 digits');
+ const acc=JSON.parse(localStorage.getItem('bm_acc_'+em)||'null');
+ if(!acc){
+   if($('pin2wrap').style.display==='none'){
+     $('pin2wrap').style.display='block';
+     $('loginNote').textContent='New email detected — confirm your PIN once to create your account.';
+     return;
+   }
+   if(pin!==$('pin2').value.trim())return toast('PINs do not match');
+   localStorage.setItem('bm_acc_'+em,JSON.stringify({h:await hash(em+':'+pin),created:new Date().toISOString()}));
+   toast('✅ Account created! Welcome.');
+ }else{
+   if(await hash(em+':'+pin)!==acc.h)return toast('❌ Wrong PIN');
+ }
+ const isOwner=OWNER_EMAILS.includes(em);
+ const pay=JSON.parse(localStorage.getItem('bm_paid_'+em)||'null');
  const active=isOwner||(pay&&(!pay.expires||Date.now()<pay.expires));
- localStorage.setItem('bm_user',JSON.stringify({email:otpEmail,paid:active,owner:isOwner}));
+ localStorage.setItem('bm_user',JSON.stringify({email:em,paid:active,owner:isOwner}));
  active?enterApp():go('s-pay');
 }
 
 /* ---- PAYMENT ---- */
-function selPlan(el,amt){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;document.querySelectorAll('.amt').forEach(e=>e.textContent=amt);}
+function selPlan(el,amt,type){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;planType=type||'Monthly';document.querySelectorAll('.amt').forEach(e=>e.textContent=amt.toLocaleString('en-IN'));}
 function payUPI(){
  const u=JSON.parse(localStorage.getItem('bm_user'));
- const link=`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Mother India Transport')}&am=${planAmt}&cu=INR&tn=${encodeURIComponent('BiltyMaker '+(planAmt===999?'Yearly':'Monthly')+' '+u.email)}`;
+ const link=`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Mother India Transport')}&am=${planAmt}&cu=INR&tn=${encodeURIComponent('BiltyMaker '+planType+' '+u.email)}`;
  const qr=$('upiQR');qr.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(link);qr.style.display='block';
  if(/Android|iPhone/i.test(navigator.userAgent))window.open(link,'_blank');
- $('utrBox').style.display='block';toast('Scan the QR / pay in UPI app: ₹'+planAmt);
+ $('utrBox').style.display='block';toast('Scan the QR / pay in UPI app: ₹'+planAmt.toLocaleString('en-IN'));
 }
 function confirmUPI(){
  const utr=$('utr').value.trim();
  if(utr.length<8)return toast('Enter the UTR number from your UPI app');
  const u=JSON.parse(localStorage.getItem('bm_user'));
- localStorage.setItem('bm_paid_'+u.email,JSON.stringify({utr,amt:planAmt,plan:planAmt===999?'Yearly':'Monthly',at:new Date().toISOString(),status:'pending-check',expires:Date.now()+(planAmt===999?365:30)*86400000}));
+ localStorage.setItem('bm_paid_'+u.email,JSON.stringify({utr,amt:planAmt,plan:planType,at:new Date().toISOString(),status:'pending-check',expires:Date.now()+(planType==='Yearly'?365:30)*86400000}));
  u.paid=true;localStorage.setItem('bm_user',JSON.stringify(u));toast('✅ Account activated!');enterApp();
 }
 function payRazorpay(){
@@ -248,7 +252,7 @@ function payRazorpay(){
  const u=JSON.parse(localStorage.getItem('bm_user'));
  new Razorpay({key:RZP_KEY,amount:planAmt*100,currency:'INR',name:'Mother India Transport',description:'BiltyMaker Plan',
   prefill:{email:u.email},theme:{color:'#1b7a43'},
-  handler:res=>{localStorage.setItem('bm_paid_'+u.email,JSON.stringify({paymentId:res.razorpay_payment_id,amt:planAmt,plan:planAmt===999?'Yearly':'Monthly',at:new Date().toISOString(),status:'verified',expires:Date.now()+(planAmt===999?365:30)*86400000}));
+  handler:res=>{localStorage.setItem('bm_paid_'+u.email,JSON.stringify({paymentId:res.razorpay_payment_id,amt:planAmt,plan:planType,at:new Date().toISOString(),status:'verified',expires:Date.now()+(planType==='Yearly'?365:30)*86400000}));
   u.paid=true;localStorage.setItem('bm_user',JSON.stringify(u));toast('✅ Payment verified!');enterApp();}}).open();
 }
 function enterApp(){
