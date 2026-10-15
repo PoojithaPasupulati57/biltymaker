@@ -10,12 +10,15 @@ export default async function handler(req, res) {
   const code = String(Math.floor(100000 + Math.random()*900000));
   rec.tries.push(now); rec.code = code; rec.expiry = now + 5*60*1000;
   store.set(em, rec);
-  const r = await fetch('https://api.resend.com/emails', {
+  const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method:'POST',
-    headers:{ Authorization:'Bearer '+process.env.RESEND_API_KEY, 'Content-Type':'application/json' },
-    body: JSON.stringify({ from:'BiltyMaker <onboarding@resend.dev>', to:[em],
-      subject:'Your BiltyMaker OTP: '+code,
-      html:`<div style="font-family:Arial;padding:24px;background:#f6f4ec"><h2 style="color:#145c33">Mother India Transport – BiltyMaker</h2><p style="font-size:34px;font-weight:800;letter-spacing:6px;color:#c22a63">${code}</p><p style="color:#666">Expires in 5 minutes.</p></div>` })
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      service_id: process.env.EMAILJS_SERVICE_ID,
+      template_id: process.env.EMAILJS_TEMPLATE_ID,
+      user_id: process.env.EMAILJS_PUBLIC_KEY,
+      template_params: { otp: code, to_email: em }
+    })
   });
   if (!r.ok) return res.status(500).json({ ok:false, error:'Email send failed' });
   res.json({ ok:true });
