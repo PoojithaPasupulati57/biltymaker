@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiltyMaker – Transport Bilty from a Photo</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--g:#1b7a43;--gd:#145c33;--p:#c22a63;--cream:#f6f4ec;--ink:#222;--mut:#666}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:var(--cream);color:var(--ink)}
+.screen{display:none}.screen.active{display:block}
+.wrap{width:min(1000px,94%);margin:auto}
+.btn{border:none;border-radius:40px;padding:12px 26px;font-size:1rem;font-weight:600;cursor:pointer;background:var(--g);color:#fff}
+.btn:hover{background:var(--gd)}
+.btn.pink{background:var(--p)}.btn.pink:hover{background:#a11f4f}
+.btn.ghost{background:#fff;color:var(--g);border:2px solid var(--g)}
+.card{background:#fff;border-radius:12px;padding:26px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+input,select{padding:11px 12px;border:1px solid #bbb;border-radius:8px;font-size:.95rem;width:100%}
+label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 0 3px}
+#s-home{background:linear-gradient(135deg,var(--gd),var(--g));min-height:100vh;color:#fff}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;padding:60px 0}
+.hero h1{font-size:clamp(1.8rem,4.5vw,3rem);line-height:1.2}
+.hero h1 span{color:#ffd76e}
+.hero p{margin:14px 0 24px;color:#e6f2ea}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+.steps b{background:rgba(255,255,255,.15);padding:6px 14px;border-radius:30px;font-size:.8rem;font-weight:500}
+.biltyMock{background:#fff;color:var(--ink);border:3px solid var(--g);border-radius:6px;padding:18px;transform:rotate(2deg);box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.biltyMock h3{color:var(--p);text-align:center;letter-spacing:1px}
+.biltyMock .bar{background:var(--g);color:#fff;text-align:center;font-size:.7rem;padding:4px;margin:8px 0}
+.biltyMock .ln{border-bottom:1px dotted #999;height:16px;margin:8px 0}
+.biltyMock .tbl{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:.65rem;color:var(--mut)}
+.biltyMock .tbl div{border:1px solid #ccc;padding:6px}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px 0}
+.narrow{width:min(420px,92%)}
+.narrow h2{color:var(--gd);margin-bottom:6px}
+.narrow p.sub{color:var(--mut);font-size:.9rem;margin-bottom:16px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.plan{border:2px solid #ddd;border-radius:12px;padding:18px;text-align:center;cursor:pointer}
+.plan.sel{border-color:var(--g);background:#eef8f1}
+.plan h4{color:var(--p)}.plan .price{font-size:1.5rem;font-weight:800;color:var(--gd)}
+.note{font-size:.75rem;color:var(--mut);margin-top:12px}
+.topbar{background:var(--gd);color:#fff;padding:10px 0;position:sticky;top:0;z-index:20}
+.topbar .wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar b{color:#ffd76e}
+.tabs{display:flex;gap:10px;margin:18px 0;flex-wrap:wrap}
+.tab{padding:9px 20px;border-radius:30px;background:#e4e0d3;cursor:pointer;font-weight:600;font-size:.9rem}
+.tab.on{background:var(--g);color:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.drop{border:2px dashed var(--g);border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:#f2faf5}
+.drop img{max-width:100%;max-height:180px;border-radius:8px;margin-top:10px}
+.rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:8px;margin-top:8px}
+.totbox{background:#eef8f1;border-radius:10px;padding:12px 16px;margin-top:12px;font-size:.95rem}
+.totbox b{float:right}
+#preview{background:#fff;border:3px solid var(--g);padding:16px;font-size:12px;color:#145c33}
+#preview h2{color:var(--p);text-align:center;font-size:22px;letter-spacing:1px}
+#preview .bar{background:var(--g);color:#fff;text-align:center;padding:4px;font-weight:700;margin:6px 0}
+#preview .ctr{text-align:center}
+#preview .flex{display:flex;justify-content:space-between;gap:8px;margin:4px 0;flex-wrap:wrap}
+#preview table{width:100%;border-collapse:collapse;margin-top:8px}
+#preview td,#preview th{border:1px solid var(--g);padding:5px;font-size:11px}
+#preview .terms{font-size:8.5px;margin-top:8px;border:1px solid var(--g);padding:6px}
+#preview .sign{display:flex;justify-content:space-between;margin-top:14px;font-weight:700;color:var(--p);flex-wrap:wrap;gap:6px}
+.hitem{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 3px 10px rgba(0,0,0,.06);flex-wrap:wrap}
+.hitem small{color:var(--mut)}
+.hbtns button{padding:7px 14px;font-size:.8rem;border-radius:20px;border:none;cursor:pointer;margin-left:6px}
+.b-edit{background:var(--g);color:#fff}.b-copy{background:var(--p);color:#fff}.b-del{background:#ddd}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 22px;border-radius:30px;display:none;z-index:99;font-size:.9rem;max-width:90%}
+@media(max-width:800px){.hero,.grid2,.plans{grid-template-columns:1fr}.biltyMock{transform:none}}
+</style>
+</head>
+<body>
+
+<!-- 1 LANDING -->
+<section class="screen active" id="s-home">
+  <div class="wrap hero">
+    <div>
+      <h1>Your Paper Bilty,<br><span>Now Digital.</span> 🚚</h1>
+      <p>Upload a <b>photo of your old bilty book page</b> — AI recreates it as a clean digital bilty. Fill, download PDF, and reuse forever.</p>
+      <div class="steps"><b>📸 Upload photo</b><b>🤖 AI creates format</b><b>✍️ Fill details</b><b>⬇️ Download PDF</b><b>📂 Saved for copy</b></div>
+      <button class="btn pink" onclick="go('s-login')">Login with Email →</button>
+    </div>
+    <div class="biltyMock">
+      <h3>MOTHER INDIA TRANSPORT</h3>
+      <div class="bar">TRANSPORT CONTRACTORS & COMMISSION AGENTS</div>
+      <div class="ln"></div><div class="ln"></div>
+      <div class="tbl"><div>Qty</div><div>Description</div><div>Weight</div><div>Freight</div>
+      <div>426 BAG</div><div>DESCLAY</div><div>17131 KGS</div><div>₹30,000</div></div>
+      <div class="ln"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 LOGIN -->
+<section class="screen" id="s-login"><div class="center"><div class="card narrow">
+  <h2>📧 Login</h2><p class="sub">Enter your email — we'll send a 6-digit OTP (free)</p>
+  <label>Email Address</label>
+  <input id="email" type="email" placeholder="you@example.com">
+  <br><br><button class="btn" onclick="sendOTP()">Send OTP to Email</button>
+  <p class="note">OTP arrives in inbox (check Spam once). 100% free.</p>
+</div></div></section>
+
+<!-- 3 OTP -->
+<section class="screen" id="s-otp"><div class="center"><div class="card narrow">
+  <h2>🔐 Verify OTP</h2><p class="sub" id="otpMsg">Enter the 6-digit OTP from your email</p>
+  <input id="otp" type="tel" maxlength="6" placeholder="• • • • • •" style="letter-spacing:8px;text-align:center;font-size:1.3rem">
+  <br><br><button class="btn" onclick="verifyOTP()">Verify & Login</button>
+  <p class="note"><a href="#" onclick="sendOTP();return false">Resend OTP</a></p>
+</div></div></section>
+
+<!-- 4 PAYMENT -->
+<section class="screen" id="s-pay"><div class="center"><div class="card narrow">
+  <h2>💳 Choose a Plan</h2><p class="sub">Pay once — start creating bilties</p>
+  <div class="plans">
+    <div class="plan sel" onclick="selPlan(this,99)"><h4>Monthly</h4><div class="price">₹99</div>/month</div>
+    <div class="plan" onclick="selPlan(this,999)"><h4>Yearly</h4><div class="price">₹999</div>/year</div>
+  </div>
+  <button class="btn pink" style="width:100%" onclick="payUPI()">📲 Pay ₹<span class="amt">99</span> via UPI (GPay/PhonePe/Paytm)</button>
+  <img id="upiQR" style="display:none;width:200px;margin:12px auto 0;border-radius:10px;border:1px solid #ddd">
+  <div id="utrBox" style="display:none;margin-top:14px">
+    <label>Paid? Enter UPI reference no. (UTR) from your UPI app</label>
+    <input id="utr" placeholder="e.g. 412345678901">
+    <button class="btn" style="width:100%;margin-top:8px" onclick="confirmUPI()">✅ Activate My Account</button>
+  </div>
+  <button class="btn ghost" style="width:100%;margin-top:10px" onclick="payRazorpay()">💳 Card / Netbanking (optional)</button>
+  <p class="note">UPI money reaches the owner's bank directly — 0% fees.</p>
+</div></div></section>
+
+<!-- 5-7 APP -->
+<section class="screen" id="s-app">
+  <div class="topbar"><div class="wrap">
+    <b>🚚 BiltyMaker</b><span id="userTag"></span>
+    <button class="btn ghost" style="padding:6px 16px" onclick="logout()">Logout</button>
+  </div></div>
+  <div class="wrap" style="padding-bottom:50px">
+    <div class="tabs">
+      <div class="tab on" onclick="tab(this,'p-new')">➕ New Bilty</div>
+      <div class="tab" onclick="tab(this,'p-hist')">📂 My Bilties</div>
+      <div class="tab" onclick="tab(this,'p-acc')">👤 My Account</div>
+    </div>
+
+    <div id="p-new">
+      <div class="card" style="margin-bottom:18px">
+        <b>Step 1 — Upload photo of your reference bilty 📸</b>
+        <div class="drop" onclick="document.getElementById('file').click()">
+          <div id="dropTxt">Tap to upload image (JPG / PNG)</div>
+          <img id="refImg" style="display:none">
+        </div>
+        <input type="file" id="file" accept="image/*" hidden onchange="uploadRef(this)">
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <b>Step 2 — Check & fill details ✍️</b>
+          <label>Company Name</label><input id="f_company" oninput="render()">
+          <label>Tagline</label><input id="f_tag" oninput="render()">
+          <label>Address</label><input id="f_addr" oninput="render()">
+          <label>Phone</label><input id="f_ph" oninput="render()">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label>Bilty No.</label><input id="f_no" oninput="render()"></div>
+            <div><label>Date</label><input id="f_date" type="date" oninput="render()"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div><label>Lorry No.</label><input id="f_lorry" oninput="render()"></div>
+            <div><label>From</label><input id="f_from" oninput="render()"></div>
+            <div><label>To</label><input id="f_to" oninput="render()"></div>
+          </div>
+          <label>Consignor M/s.</label><input id="f_consignor" oninput="render()">
+          <label>Consignee M/s.</label><input id="f_consignee" oninput="render()">
+          <label>Goods (Qty / Description / Weight)</label>
+          <div id="rows"></div>
+          <button class="btn ghost" style="margin-top:8px;padding:7px 16px;font-size:.85rem" onclick="addRow()">+ Add Row</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div><label>Freight ₹</label><input id="f_freight" type="number" oninput="render()"></div>
+            <div><label>Hamali ₹</label><input id="f_hamali" type="number" oninput="render()"></div>
+            <div><label>Advance ₹</label><input id="f_adv" type="number" oninput="render()"></div>
+          </div>
+          <div class="totbox">Total: <b id="t_total">₹0</b><br>Balance: <b id="t_bal">₹0</b></div>
+          <br>
+          <button class="btn" onclick="saveBilty(false)">💾 Save</button>
+          <button class="btn pink" onclick="downloadPDF()">⬇️ Download PDF</button>
+        </div>
+        <div><b style="color:var(--gd)">Live Preview 👀</b><div id="preview" style="margin-top:8px"></div></div>
+      </div>
+    </div>
+
+    <div id="p-hist" style="display:none"><div id="histList"></div></div>
+    <div id="p-acc" style="display:none"><div class="card"><h2 style="color:var(--gd)">My Account</h2><div id="accBody"></div></div></div>
+  </div>
+</section>
+
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let otpEmail=null, planAmt=99, editId=null;
+const UPI_ID="9346013045@ybl"; // Owner UPI – customer payments land here
+const OWNER_EMAILS=['poojithapasupuleti57@gmail.com']; // owner = free forever
+const RZP_KEY=""; // optional Razorpay key, else leave ""
+
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',3800);}
+function tab(el,p){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+ ['p-new','p-hist','p-acc'].forEach(id=>$(id).style.display=(id===p)?'block':'none');
+ if(p==='p-hist')renderHist(); if(p==='p-acc')renderAcc();}
+
+/* ---- EMAIL OTP (free, server-side) ---- */
+async function sendOTP(){
+ const em=$('email').value.trim().toLowerCase();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast('Enter a valid email address');
+ toast('⏳ Sending OTP…');
+ try{
+  const r=await fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});
+  const j=await r.json();
+  if(!j.ok)return toast('❌ '+(j.error||'Send failed'));
+  otpEmail=em;go('s-otp');toast('📩 OTP sent to '+em);
+ }catch(e){toast('❌ Network error');}
+}
+async function verifyOTP(){
+ const r=await fetch('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:otpEmail,otp:$('otp').value})});
+ const j=await r.json();
+ if(!j.ok)return toast('❌ '+j.error);
+ const isOwner=OWNER_EMAILS.includes(otpEmail);
+ const pay=JSON.parse(localStorage.getItem('bm_paid_'+otpEmail)||'null');
+ const active=isOwner||(pay&&(!pay.expires||Date.now()<pay.expires));
+ localStorage.setItem('bm_user',JSON.stringify({email:otpEmail,paid:active,owner:isOwner}));
+ active?enterApp():go('s-pay');
+}
+
+/* ---- PAYMENT ---- */
+function selPlan(el,amt){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;document.querySelectorAll('.amt').forEach(e=>e.textContent=amt);}
+function payUPI(){
+ const u=JSON.parse(localStorage.getItem('bm_user'));
+ const link=`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Mother India Transport')}&am=${planAmt}&cu=INR&tn=${encodeURIComponent('BiltyMaker '+(planAmt===999?'Yearly':'Monthly')+' '+u.email)}`;
+ const qr=$('upiQR');qr.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(link);qr.style.display='block';
+ if(/Android|iPhone/i.test(navigator.userAgent))window.open(link,'_blank');
+ $('utrBox').style.display='block';toast('Scan the QR / pay in UPI app: ₹'+planAmt);
+}
+function confirmUPI(){
+ const utr=$('utr').value.trim();
+ if(utr.length<8)return toast('Enter the UTR number from your UPI app');
+ const u=JSON.parse(localStorage.getItem('bm_user'));
+ localStorage.setItem('bm_paid_'+u.email,JSON.stringify({utr,amt:planAmt,plan:planAmt===999?'Yearly':'Monthly',at:new Date().toISOString(),status:'pending-check',expires:Date.now()+(planAmt===999?365:30)*86400000}));
+ u.paid=true;localStorage.setItem('bm_user',JSON.stringify(u));toast('✅ Account activated!');enterApp();
+}
+function payRazorpay(){
+ if(!RZP_KEY)return toast('Card payments not configured — please use UPI');
+ const u=JSON.parse(localStorage.getItem('bm_user'));
+ new Razorpay({key:RZP_KEY,amount:planAmt*100,currency:'INR',name:'Mother India Transport',description:'BiltyMaker Plan',
+  prefill:{email:u.email},theme:{color:'#1b7a43'},
+  handler:res=>{localStorage.setItem('bm_paid_'+u.email,JSON.stringify({paymentId:res.razorpay_payment_id,amt:planAmt,plan:planAmt===999?'Yearly':'Monthly',at:new Date().toISOString(),status:'verified',expires:Date.now()+(planAmt===999?365:30)*86400000}));
+  u.paid=true;localStorage.setItem('bm_user',JSON.stringify(u));toast('✅ Payment verified!');enterApp();}}).open();
+}
+function enterApp(){
+ const u=JSON.parse(localStorage.getItem('bm_user'));if(!u)return;
+ $('userTag').textContent='👤 '+u.email;
+ const pay=JSON.parse(localStorage.getItem('bm_paid_'+u.email)||'null');
+ if(!u.owner&&pay&&pay.expires&&Date.now()>pay.expires){toast('⏳ Plan expired — renew to continue');go('s-pay');return;}
+ go('s-app');if(!$('rows').children.length)blankForm();
+}
+function logout(){localStorage.removeItem('bm_user');go('s-home');}
+
+/* ---- AI PHOTO → BILTY ---- */
+const DEMO={company:'MOTHER INDIA TRANSPORT',tag:'TRANSPORT CONTRACTORS & COMMISSION AGENTS',
+ addr:'Beside Venkateswara Way Bridge, Etukuru Road, GUNTUR - 522 004 (A.P.)',ph:'9394021555',
+ no:'21',date:'2021-09-23',lorry:'AP 39 T 2339',from:'GUNTUR, AP',to:'BILASPUR (CG)',
+ consignor:'MAYUR ENTERPRISES, GUNTUR AP',consignee:'MANOHARLAL RAJKUMAR, BILASPUR (CG)',
+ rows:[['426 BAG','DESCLAY','17131 KGS']],freight:30000,hamali:0,adv:0};
+function shrink(dataUrl,cb){const i=new Image();i.onload=()=>{const c=document.createElement('canvas');
+ const s=Math.min(1,1400/i.width);c.width=i.width*s;c.height=i.height*s;
+ c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.85));};i.src=dataUrl;}
+function normDate(s){if(!s)return '';const t=Date.parse(s);return isNaN(t)?'':new Date(t).toISOString().slice(0,10);}
+function uploadRef(inp){
+ const f=inp.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=e=>shrink(e.target.result,async small=>{
+  $('refImg').src=small;$('refImg').style.display='block';
+  $('dropTxt').innerHTML='<b>🤖 AI is reading your reference…</b>';
+  try{
+   const res=await fetch('/api/ai-bilty',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:small})});
+   const j=await res.json();
+   if(!j.ok)throw new Error(j.error||'AI error');
+   const d=j.data;
+   fillForm({company:d.company,tag:d.tag,addr:d.address,ph:(d.phones||[]).join(', '),
+    no:d.no,date:normDate(d.date),lorry:d.lorry,from:d.from,to:d.to,
+    consignor:d.consignor,consignee:d.consignee,
+    rows:(d.rows&&d.rows.length)?d.rows:[['','','']],
+    freight:+d.freight||0,hamali:+d.hamali||0,adv:+d.advance||0});
+   $('dropTxt').innerHTML='✅ AI created your bilty from the photo!';
+   toast('✅ Bilty format created from photo');
+  }catch(err){toast('❌ AI failed: '+err.message+' (demo data loaded)');fillForm(DEMO);}
+ });
+ r.readAsDataURL(f);
+}
+
+/* ---- FORM + PREVIEW ---- */
+function blankForm(){fillForm({company:'',tag:'',addr:'',ph:'',no:'',date:new Date().toISOString().slice(0,10),
+ lorry:'',from:'',to:'',consignor:'',consignee:'',rows:[['','','']],freight:0,hamali:0,adv:0});}
+function fillForm(d){
+ $('f_company').value=d.company||'';$('f_tag').value=d.tag||'';$('f_addr').value=d.addr||'';$('f_ph').value=d.ph||'';
+ $('f_no').value=d.no||'';$('f_date').value=d.date||'';$('f_lorry').value=d.lorry||'';$('f_from').value=d.from||'';
+ $('f_to').value=d.to||'';$('f_consignor').value=d.consignor||'';$('f_consignee').value=d.consignee||'';
+ $('f_freight').value=d.freight||0;$('f_hamali').value=d.hamali||0;$('f_adv').value=d.adv||0;
+ $('rows').innerHTML='';(d.rows||[['','','']]).forEach(r=>addRow(r));render();
+}
+function addRow(v){const d=document.createElement('div');d.className='rowline';
+ d.innerHTML='<input placeholder="Qty" oninput="render()"><input placeholder="Description" oninput="render()"><input placeholder="Weight" oninput="render()">';
+ $('rows').appendChild(d);if(v){const i=d.querySelectorAll('input');v.forEach((x,k)=>i[k].value=x||'');}}
+function gather(){
+ const rows=[...$('rows').children].map(r=>[...r.querySelectorAll('input')].map(i=>i.value));
+ return {company:$('f_company').value,tag:$('f_tag').value,addr:$('f_addr').value,ph:$('f_ph').value,no:$('f_no').value,
+  date:$('f_date').value,lorry:$('f_lorry').value,from:$('f_from').value,to:$('f_to').value,consignor:$('f_consignor').value,
+  consignee:$('f_consignee').value,rows,freight:+$('f_freight').value||0,hamali:+$('f_hamali').value||0,adv:+$('f_adv').value||0};
+}
+function render(){
+ const d=gather(),total=d.freight+d.hamali,bal=total-d.adv;
+ $('t_total').textContent='₹'+total.toLocaleString('en-IN');$('t_bal').textContent='₹'+bal.toLocaleString('en-IN');
+ $('preview').innerHTML=`
+  <div class="flex"><b>No. ${d.no}</b><b>Date: ${d.date}</b></div>
+  <h2>${d.company}</h2><div class="bar">${d.tag}</div>
+  <div class="ctr">${d.addr}<br>Ph: ${d.ph}</div><hr style="margin:8px 0">
+  <div class="flex"><span>Lorry No: <b>${d.lorry}</b></span><span>From: <b>${d.from}</b></span><span>To: <b>${d.to}</b></span></div>
+  <div>Consignor M/s. <b>${d.consignor}</b></div>
+  <div>Consignee M/s. <b>${d.consignee}</b></div>
+  <table><tr><th>Quantity</th><th>Description (Said to Contain)</th><th>Weight Actual</th><th>Freight Rs.</th></tr>
+  ${d.rows.map((r,i)=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${i===0?'₹'+d.freight.toLocaleString('en-IN'):''}</td></tr>`).join('')}
+  <tr><td colspan="3" style="text-align:right"><b>HAMALI/OTHERS</b></td><td>₹${d.hamali}</td></tr>
+  <tr><td colspan="3" style="text-align:right"><b>TOTAL</b></td><td>₹${total.toLocaleString('en-IN')}</td></tr>
+  <tr><td colspan="3" style="text-align:right"><b>LESS ADVANCE</b></td><td>₹${d.adv}</td></tr>
+  <tr><td colspan="3" style="text-align:right"><b>BALANCE</b></td><td>₹${bal.toLocaleString('en-IN')}</td></tr></table>
+  <div class="terms"><b>Owner's Risk.</b> 1) Company not responsible for leakage, breakage, soilage by sun, rain, water, fire or weather. 2) Fresh fruits carried at sender's risk. 4) Any dispute subject to Guntur jurisdiction only.</div>
+  <div class="sign"><span>Signature of Consignor/Driver</span><span>For ${d.company}</span></div>`;
+}
+
+/* ---- SAVE / PDF / HISTORY / ACCOUNT ---- */
+function downloadPDF(){
+ const d=gather();
+ html2pdf().set({margin:6,filename:'bilty-'+(d.no||'new')+'.pdf',image:{type:'jpeg',quality:.95},
+  html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4'}}).from($('preview')).save();
+ saveBilty(true);
+}
+function saveBilty(silent){
+ const list=JSON.parse(localStorage.getItem('bm_bilties')||'[]');
+ const d=gather();
+ if(editId){const i=list.findIndex(x=>x.id===editId);if(i>-1)list[i].d=d;}
+ else{editId=Date.now()+'';list.unshift({id:editId,d,savedAt:new Date().toLocaleString()});}
+ localStorage.setItem('bm_bilties',JSON.stringify(list));
+ toast(silent?'✅ Downloaded & saved to My Bilties':'💾 Saved to My Bilties');renderHist();
+}
+function renderHist(){
+ const list=JSON.parse(localStorage.getItem('bm_bilties')||'[]');
+ $('histList').innerHTML=list.length?list.map(b=>`
+  <div class="hitem"><div><b>${b.d.company||'Bilty'} — No. ${b.d.no||'-'}</b><br>
+  <small>${b.d.from} → ${b.d.to} • ${b.savedAt}</small></div>
+  <div class="hbtns">
+   <button class="b-edit" onclick="openB('${b.id}')">Edit</button>
+   <button class="b-copy" onclick="copyB('${b.id}')">Copy</button>
+   <button class="b-del" onclick="delB('${b.id}')">🗑</button>
+  </div></div>`).join(''):'<div class="card">No bilties yet. Create your first one! ➕</div>';
+}
+function openB(id){const b=JSON.parse(localStorage.getItem('bm_bilties')).find(x=>x.id===id);editId=id;fillForm(b.d);tab(document.querySelectorAll('.tab')[0],'p-new');}
+function copyB(id){const b=JSON.parse(localStorage.getItem('bm_bilties')).find(x=>x.id===id);editId=null;fillForm(b.d);toast('📋 Copied! Edit & save as new.');tab(document.querySelectorAll('.tab')[0],'p-new');}
+function delB(id){const l=JSON.parse(localStorage.getItem('bm_bilties')).filter(x=>x.id!==id);localStorage.setItem('bm_bilties',JSON.stringify(l));renderHist();}
+function renderAcc(){
+ const u=JSON.parse(localStorage.getItem('bm_user')||'null');if(!u)return;
+ const pay=JSON.parse(localStorage.getItem('bm_paid_'+u.email)||'null');
+ const list=JSON.parse(localStorage.getItem('bm_bilties')||'[]');
+ const daysLeft=pay?.expires?Math.max(0,Math.ceil((pay.expires-Date.now())/86400000)):0;
+ $('accBody').innerHTML=`
+  <p><b>📧 Email:</b> ${u.email}</p>
+  ${u.owner?'<p><b>👑 Role:</b> Owner — free forever access</p>':''}
+  <p><b>📦 Plan:</b> ${pay?(pay.plan||'Monthly'):'—'}</p>
+  <p><b>🟢 Status:</b> ${u.owner?'Owner (no payment needed)':(pay?(pay.status==='verified'?'Active':'Pending UTR check'):'Not paid')}</p>
+  ${pay?.status==='verified'?`<p><b>⏳ Days left:</b> ${daysLeft}</p>`:(pay?.utr?`<p><b>UTR:</b> ${pay.utr}</p>`:'')}
+  <p><b>🧾 Bilties created:</b> ${list.length}</p>
+  <p><b>🗓 Paid on:</b> ${pay?.at?new Date(pay.at).toLocaleString():'—'}</p><br>
+  <button class="btn pink" onclick="go('s-pay')">⬆️ Upgrade / Renew</button>
+  <button class="btn ghost" onclick="logout()">Logout</button>`;
+}
+const u0=JSON.parse(localStorage.getItem('bm_user')||'null');
+if(u0&&u0.paid)enterApp();
+</script>
+</body>
+</html>
