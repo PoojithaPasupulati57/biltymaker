@@ -1,12 +1,13 @@
 import crypto from 'crypto';
 
-const SECRET = process.env.OTP_SECRET || 'biltymaker-secret-change-me';
+const SECRET = process.env.OTP_SECRET || 'verifykey'; // your salt, kept
 const WINDOW_MS = 5 * 60 * 1000;
 const win = () => Math.floor(Date.now() / WINDOW_MS);
+const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ', L='abcdefghijklmnopqrstuvwxyz', D='0123456789';
 
-function otpFor(email, w) {
+function genotp(email, w) {           // same pattern as your Python genotp(): Aa1Bb2
   const h = crypto.createHmac('sha256', SECRET).update(email + ':' + w).digest();
-  return String(h.readUInt32BE(0) % 1000000).padStart(6, '0');
+  return U[h[0]%26] + L[h[1]%26] + D[h[2]%10] + U[h[3]%26] + L[h[4]%26] + D[h[5]%10];
 }
 
 export default async function handler(req, res) {
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
   const em = String(req.body?.email || '').toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ ok:false, error:'Invalid email' });
 
-  const code = otpFor(em, win());
+  const code = genotp(em, win());
 
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -25,8 +26,8 @@ export default async function handler(req, res) {
       subject: 'Your BiltyMaker OTP: ' + code,
       html: '<div style="font-family:Arial;padding:24px;background:#f6f4ec">' +
             '<h2 style="color:#145c33">Transport Bilty – Login OTP</h2>' +
-            '<p style="font-size:34px;font-weight:800;letter-spacing:6px;color:#c22a63">' + code + '</p>' +
-            '<p style="color:#666">Expires in 5 minutes. Ignore if not requested.</p></div>'
+            '<p style="font-size:34px;font-weight:800;letter-spacing:6px;color:#c22a63;font-family:monospace">' + code + '</p>' +
+            '<p style="color:#666">Expires in 5 minutes. Upper/lower case does not matter. Ignore if not requested.</p></div>'
     })
   });
 
