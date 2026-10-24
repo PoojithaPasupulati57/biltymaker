@@ -9,6 +9,13 @@ function hashOtp(email, code, secret) {
     .digest('hex');
 }
 
+function hashToken(token, secret) {
+  return crypto
+    .createHmac('sha256', secret)
+    .update(token)
+    .digest('hex');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -18,11 +25,9 @@ export default async function handler(req, res) {
     });
   }
 
-  const email = String(req.body?.email || '')
-    .trim()
-    .toLowerCase();
-
+  const email = String(req.body?.email || '').trim().toLowerCase();
   const code = String(req.body?.otp || '').trim();
+  const secret = process.env.OTP_SECRET;
 
   if (
     email.length > 254 ||
@@ -35,8 +40,6 @@ export default async function handler(req, res) {
     });
   }
 
-  const secret = process.env.OTP_SECRET;
-
   if (!secret || secret.length < 32 || !process.env.DATABASE_URL) {
     return res.status(500).json({
       ok: false,
@@ -44,13 +47,11 @@ export default async function handler(req, res) {
     });
   }
 
-  let db;
-
   try {
-    db = getPool();
-
-    // Lock the newest unused challenge to prevent concurrent reuse.
+    const db = getPool();
     const client = await db.connect();
+
+    let registrationToken;
 
     try {
       await client.query('BEGIN');
@@ -58,43 +59,46 @@ export default async function handler(req, res) {
       const result = await client.query(
         `SELECT id, otp_hash, expires_at, attempts
          FROM public.email_otp_challenges
-         WHERE email = $1
-           AND consumed_at IS NULL
+         WHERE email = $1 AND consumed_at IS NULL
          ORDER BY created_at DESC, id DESC
          LIMIT 1
          FOR UPDATE`,
         [email]
       );
 
-      if (!result.rows.length) {
+      if (!result.rowCount) {
         await client.query('ROLLBACK');
         return res.status(400).json({
           ok: false,
-          error: 'Wrong or expired OTP — request a new one'
+          error: 'Wrong or expired OTP. Request a new one.'
         });
       }
 
       const challenge = result.rows[0];
 
-      if (challenge.attempts >= 5 ||
-          new Date(challenge.expires_at).getTime() <= Date.now()) {
+      if (
+        challenge.attempts >= 5 ||
+        new Date(challenge.expires_at).getTime() <= Date.now()
+      ) {
         await client.query(
           `UPDATE public.email_otp_challenges
            SET consumed_at = NOW()
            WHERE id = $1`,
           [challenge.id]
         );
-
         await client.query('COMMIT');
 
         return res.status(400).json({
           ok: false,
-          error: 'Wrong or expired OTP — request a new one'
+          error: 'Wrong or expired OTP. Request a new one.'
         });
       }
 
       const expected = Buffer.from(challenge.otp_hash, 'hex');
-      const supplied = Buffer.from(hashOtp(email, code, secret), 'hex');
+      const supplied = Buffer.from(
+        hashOtp(email, code, secret),
+        'hex'
+      );
 
       const matches =
         expected.length === supplied.length &&
@@ -106,7 +110,10 @@ export default async function handler(req, res) {
         await client.query(
           `UPDATE public.email_otp_challenges
            SET attempts = $1,
-               consumed_at = CASE WHEN $1 >= 5 THEN NOW() ELSE consumed_at END
+               consumed_at = CASE
+                 WHEN $1 >= 5 THEN NOW()
+                 ELSE consumed_at
+               END
            WHERE id = $2`,
           [attempts, challenge.id]
         );
@@ -117,11 +124,10 @@ export default async function handler(req, res) {
           ok: false,
           error: attempts >= 5
             ? 'Too many attempts. Request a new OTP.'
-            : 'Wrong or expired OTP'
+            : 'Wrong OTP.'
         });
       }
 
-      // Consume the OTP so it cannot be reused.
       await client.query(
         `UPDATE public.email_otp_challenges
          SET consumed_at = NOW()
@@ -129,21 +135,44 @@ export default async function handler(req, res) {
         [challenge.id]
       );
 
-      await client.query('COMMIT');
+      registrationToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = hashToken(registrationToken, secret);
 
-      return res.status(200).json({ ok: true });
+      await client.query(
+        `UPDATE public.registration_tokens
+         SET consumed_at = NOW()
+         WHERE email = $1 AND consumed_at IS NULL`,
+        [email]
+      );
+
+      await client.query(
+        `INSERT INTO public.registration_tokens
+           (email, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
+        [email, tokenHash]
+      );
+
+      await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {});
       throw error;
     } finally {
       client.release();
     }
+
+    return res.status(200).json({
+      ok: true,
+      registrationToken
+    });
   } catch (error) {
-    console.error('OTP verification failed:', error?.message || 'Unknown error');
+    console.error(
+      'OTP verification failed:',
+      error?.message || 'Unknown error'
+    );
 
     return res.status(500).json({
       ok: false,
-      error: 'Could not verify OTP. Please try again later.'
+      error: 'Could not verify OTP. Please try again.'
     });
   }
 }
