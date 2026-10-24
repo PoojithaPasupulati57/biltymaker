@@ -111,10 +111,13 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 <!-- 4 PAYMENT: UPI only, app chooser -->
 <section class="screen" id="s-pay"><div class="center"><div class="card narrow">
   <h2>💳 Choose a Plan</h2><p class="sub">Pay once — start creating bilties</p>
-  <div class="plans">
-    <div class="plan sel" onclick="selPlan(this,5000,'Monthly')"><h4>Monthly</h4><div class="price">₹5,000</div>/month</div>
-    <div class="plan" onclick="selPlan(this,50000,'Yearly')"><h4>Yearly</h4><div class="price">₹50,000</div>/year<br><small>2 months free</small></div>
+ <div class="plans" style="grid-template-columns:1fr">
+  <div class="plan sel">
+    <h4>Lifetime Access</h4>
+    <div class="price">₹5,000</div>
+    <small>One-time payment · No renewal · No expiry</small>
   </div>
+</div>
   <label>Pay ₹<span class="amt">5,000</span> — choose your UPI app:</label>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0">
     <button class="btn ghost" style="padding:10px" onclick="payUPI('gpay')">🟢 GPay</button>
