@@ -1,37 +1,48 @@
 
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { getPool } from '../lib/db.js';
 
 const WINDOW_MS = 5 * 60 * 1000;
-const win = () => Math.floor(Date.now() / WINDOW_MS);
 
 const U = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const L = 'abcdefghijklmnopqrstuvwxyz';
 const D = '0123456789';
 
-function genotp(email, w, secret) {
-  const h = crypto
-    .createHmac('sha256', secret)
-    .update(email + ':' + w)
-    .digest();
+function randomChar(chars) {
+  return chars[crypto.randomInt(0, chars.length)];
+}
 
+function generateOtp() {
   return (
-    U[h[0] % 26] +
-    L[h[1] % 26] +
-    D[h[2] % 10] +
-    U[h[3] % 26] +
-    L[h[4] % 26] +
-    D[h[5] % 10]
+    randomChar(U) +
+    randomChar(L) +
+    randomChar(D) +
+    randomChar(U) +
+    randomChar(L) +
+    randomChar(D)
   );
+}
+
+function hashOtp(email, code, secret) {
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${email}:${code}`)
+    .digest('hex');
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    return res.status(405).json({
+      ok: false,
+      error: 'Method not allowed'
+    });
   }
 
-  const email = String(req.body?.email || '').trim().toLowerCase();
+  const email = String(req.body?.email || '')
+    .trim()
+    .toLowerCase();
 
   if (
     email.length > 254 ||
@@ -47,17 +58,62 @@ export default async function handler(req, res) {
   const gmailUser = process.env.GMAIL_USER;
   const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-  if (!secret || secret.length < 32 || !gmailUser || !gmailPassword) {
-    console.error('Missing or invalid OTP/email environment configuration');
+  if (
+    !secret ||
+    secret.length < 32 ||
+    !gmailUser ||
+    !gmailPassword ||
+    !process.env.DATABASE_URL
+  ) {
+    console.error('OTP service configuration is incomplete');
     return res.status(500).json({
       ok: false,
       error: 'Email service is not configured'
     });
   }
 
-  const code = genotp(email, win(), secret);
+  let challengeId;
 
   try {
+    const db = getPool();
+
+    // Limit OTP requests to 3 per email in 15 minutes.
+    const rate = await db.query(
+      `SELECT COUNT(*)::int AS total
+       FROM public.email_otp_challenges
+       WHERE email = $1
+         AND created_at > NOW() - INTERVAL '15 minutes'`,
+      [email]
+    );
+
+    if (rate.rows[0].total >= 3) {
+      return res.status(429).json({
+        ok: false,
+        error: 'Too many OTP requests. Try again in 15 minutes.'
+      });
+    }
+
+    const code = generateOtp();
+    const otpHash = hashOtp(email, code, secret);
+
+    // Only the newest challenge can be used.
+    await db.query(
+      `UPDATE public.email_otp_challenges
+       SET consumed_at = NOW()
+       WHERE email = $1 AND consumed_at IS NULL`,
+      [email]
+    );
+
+    const inserted = await db.query(
+      `INSERT INTO public.email_otp_challenges
+         (email, otp_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '5 minutes')
+       RETURNING id`,
+      [email, otpHash]
+    );
+
+    challengeId = inserted.rows[0].id;
+
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
@@ -80,20 +136,33 @@ export default async function handler(req, res) {
       subject: 'Your BiltyMaker verification code',
       text:
         `Your BiltyMaker verification code is: ${code}\n\n` +
-        'This code expires within 5 minutes. ' +
+        'This code expires in 5 minutes. ' +
         'If you did not request it, ignore this email.',
       html:
         '<div style="font-family:Arial;padding:24px;background:#f6f4ec">' +
         '<h2 style="color:#145c33">BiltyMaker verification</h2>' +
         '<p>Your email verification code is:</p>' +
         `<p style="font-size:32px;font-weight:bold;letter-spacing:5px;color:#c22a63">${code}</p>` +
-        '<p>This code expires within 5 minutes. If you did not request it, ignore this email.</p>' +
+        '<p>This code expires in 5 minutes. If you did not request it, ignore this email.</p>' +
         '</div>'
     });
 
     return res.status(200).json({ ok: true });
   } catch (error) {
-    console.error('OTP email delivery failed:', error?.message || 'Unknown error');
+    console.error('OTP request failed:', error?.message || 'Unknown error');
+
+    if (challengeId && process.env.DATABASE_URL) {
+      try {
+        await getPool().query(
+          `UPDATE public.email_otp_challenges
+           SET consumed_at = NOW()
+           WHERE id = $1`,
+          [challengeId]
+        );
+      } catch {
+        console.error('Could not invalidate failed OTP challenge');
+      }
+    }
 
     return res.status(500).json({
       ok: false,
