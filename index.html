@@ -223,24 +223,32 @@ async function sendOTP(){
   otpEmail=em;go('s-otp');$('otpMsg').textContent='Enter the 6-digit OTP sent to '+em;toast('📩 OTP sent to '+em);
  }catch(e){toast('❌ Network error');}
 }
+
 async function verifyOTP(){
-  const r = await fetch('/api/verify-otp', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      email: otpEmail,
-      otp: $('otp').value
-    })
-  });
+  try {
+    const r = await fetch('/api/verify-otp', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: otpEmail,
+        otp: $('otp').value
+      })
+    });
 
-  const j = await r.json();
+    const j = await r.json();
 
-  if (!j.ok) {
-    return toast('❌ ' + (j.error || 'OTP verification failed'));
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'OTP verification failed'));
+    }
+
+    sessionStorage.setItem('bm_registration_token', j.registrationToken);
+    sessionStorage.setItem('bm_registration_email', otpEmail);
+
+    toast('✅ Email verified! Continue with account registration.');
+    go('s-pay');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
   }
-
-  // Do not grant access based on browser storage.
-  toast('✅ Email verified. Secure account setup is the next step.');
 }
 
 /* ---- UPI PAYMENT (app chooser) ---- */
