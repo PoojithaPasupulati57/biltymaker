@@ -224,14 +224,23 @@ async function sendOTP(){
  }catch(e){toast('❌ Network error');}
 }
 async function verifyOTP(){
- const r=await fetch('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:otpEmail,otp:$('otp').value})});
- const j=await r.json();
- if(!j.ok)return toast('❌ '+j.error);
- const isOwner=OWNER_EMAILS.includes(otpEmail);
- const pay=JSON.parse(localStorage.getItem('bm_paid_'+otpEmail)||'null');
- const active=isOwner||(pay&&(!pay.expires||Date.now()<pay.expires));
- localStorage.setItem('bm_user',JSON.stringify({email:otpEmail,paid:active,owner:isOwner}));
- active?enterApp():go('s-pay');
+  const r = await fetch('/api/verify-otp', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      email: otpEmail,
+      otp: $('otp').value
+    })
+  });
+
+  const j = await r.json();
+
+  if (!j.ok) {
+    return toast('❌ ' + (j.error || 'OTP verification failed'));
+  }
+
+  // Do not grant access based on browser storage.
+  toast('✅ Email verified. Secure account setup is the next step.');
 }
 
 /* ---- UPI PAYMENT (app chooser) ---- */
