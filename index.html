@@ -258,12 +258,43 @@ function payUPI(app){
  window.open(link,'_blank');
  toast('Opening '+app.toUpperCase()+'… else scan the QR below');
 }
-function confirmUPI(){
- const utr=$('utr').value.trim();
- if(utr.length<8)return toast('Enter the UTR number from your UPI app');
- const u=JSON.parse(localStorage.getItem('bm_user'));
- localStorage.setItem('bm_paid_'+u.email,JSON.stringify({utr,amt:planAmt,plan:planType,at:new Date().toISOString(),status:'pending-check',expires:Date.now()+(planType==='Yearly'?365:30)*86400000}));
- u.paid=true;localStorage.setItem('bm_user',JSON.stringify(u));toast('✅ Account activated!');enterApp();
+async function confirmUPI(){
+  const utr = $('utr').value.trim();
+
+  if (utr.length < 8) {
+    return toast('Enter the UTR number from your UPI app');
+  }
+
+  const u = JSON.parse(localStorage.getItem('bm_user') || 'null');
+
+  if (!u || !u.email) {
+    return toast('Please verify your email first');
+  }
+
+  toast('⏳ Submitting payment for verification…');
+
+  try {
+    const r = await fetch('/api/payment-request', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: u.email,
+        utr: utr,
+        amount: 5000,
+        plan: 'lifetime'
+      })
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'Could not submit payment'));
+    }
+
+    toast('✅ Payment submitted. Access starts after approval.');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
 }
 function enterApp(){
  const u=JSON.parse(localStorage.getItem('bm_user'));if(!u)return;
