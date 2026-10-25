@@ -25,9 +25,16 @@ export default async function handler(req, res) {
     });
   }
 
-  const email = String(req.body?.email || '').trim().toLowerCase();
+  const email = String(req.body?.email || '')
+    .trim()
+    .toLowerCase();
   const pin = String(req.body?.pin || '');
-  const secret = process.env.SESSION_SECRET;
+
+  // PIN hashes must use the same secret as registration.
+  const pinSecret = process.env.OTP_SECRET;
+
+  // Session tokens use a separate secret.
+  const sessionSecret = process.env.SESSION_SECRET;
 
   if (
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
@@ -39,7 +46,13 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!secret || secret.length < 32 || !process.env.DATABASE_URL) {
+  if (
+    !pinSecret ||
+    pinSecret.length < 32 ||
+    !sessionSecret ||
+    sessionSecret.length < 32 ||
+    !process.env.DATABASE_URL
+  ) {
     return res.status(500).json({
       ok: false,
       error: 'Login is not configured.'
@@ -48,6 +61,7 @@ export default async function handler(req, res) {
 
   try {
     const db = getPool();
+
     const user = await db.query(
       `SELECT email, pin_hash
        FROM public.app_users
@@ -63,10 +77,14 @@ export default async function handler(req, res) {
     }
 
     const expected = Buffer.from(user.rows[0].pin_hash, 'hex');
-    const supplied = Buffer.from(hashPin(pin, secret), 'hex');
+    const supplied = Buffer.from(
+      hashPin(pin, pinSecret),
+      'hex'
+    );
 
     const matches =
       expected.length === supplied.length &&
+      expected.length > 0 &&
       crypto.timingSafeEqual(expected, supplied);
 
     if (!matches) {
@@ -77,7 +95,7 @@ export default async function handler(req, res) {
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    const tokenHash = hashToken(token, secret);
+    const tokenHash = hashToken(token, sessionSecret);
 
     await db.query(
       `INSERT INTO public.app_sessions
