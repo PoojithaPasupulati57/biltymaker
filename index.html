@@ -361,7 +361,8 @@ async function verifyOTP(){
 function selPlan(el,amt,type){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;planType=type||'Monthly';document.querySelectorAll('.amt').forEach(e=>e.textContent=amt.toLocaleString('en-IN'));}
 
 function payUPI(app){
-  const email = sessionStorage.getItem('bm_registration_email');
+  const email = sessionStorage.getItem('bm_payment_email')
+  || sessionStorage.getItem('bm_registration_email');
 
   if (!email) {
     return toast('Please verify your email and register first.');
