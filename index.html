@@ -446,6 +446,116 @@ async function verifyOTP(){
   }
 }
 
+function startPinReset() {
+  $('resetEmail').value = $('email').value.trim().toLowerCase();
+  $('resetOtp').value = '';
+  $('newResetPin').value = '';
+
+  sessionStorage.removeItem('bm_reset_token');
+  sessionStorage.removeItem('bm_reset_email');
+
+  go('s-reset-pin');
+}
+
+async function sendResetOTP() {
+  const email = $('resetEmail').value.trim().toLowerCase();
+
+  if (!email) return toast('❌ Enter your registered email.');
+
+  try {
+    const r = await fetch('/api/send-reset-otp', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email })
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'Could not send reset OTP.'));
+    }
+
+    sessionStorage.setItem('bm_reset_email', email);
+    sessionStorage.removeItem('bm_reset_token');
+
+    toast('✅ Reset OTP sent. Check your email and Spam folder.');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
+}
+
+async function verifyResetOTP() {
+  const email = $('resetEmail').value.trim().toLowerCase();
+  const otp = $('resetOtp').value.trim();
+
+  if (!email || !otp) {
+    return toast('❌ Enter your email and OTP.');
+  }
+
+  try {
+    const r = await fetch('/api/verify-reset-otp', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, otp })
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'OTP verification failed.'));
+    }
+
+    sessionStorage.setItem('bm_reset_token', j.resetToken);
+    sessionStorage.setItem('bm_reset_email', email);
+
+    toast('✅ OTP verified! Enter your new PIN.');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
+}
+
+async function submitPinReset() {
+  const email = $('resetEmail').value.trim().toLowerCase();
+  const pin = $('newResetPin').value;
+  const resetToken = sessionStorage.getItem('bm_reset_token');
+  const verifiedEmail = sessionStorage.getItem('bm_reset_email');
+
+  if (!/^\d{6}$/.test(pin)) {
+    return toast('❌ New PIN must contain exactly 6 digits.');
+  }
+
+  if (!resetToken || email !== verifiedEmail) {
+    return toast('❌ Verify your email OTP first.');
+  }
+
+  try {
+    const r = await fetch('/api/reset-pin', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, pin, resetToken })
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'PIN reset failed.'));
+    }
+
+    sessionStorage.removeItem('bm_reset_token');
+    sessionStorage.removeItem('bm_reset_email');
+
+    $('email').value = email;
+    $('loginPin').value = '';
+
+    toast('✅ PIN reset successfully! Log in with your new PIN.');
+    go('s-login');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
+}
+  
+  
+
 /* ---- UPI PAYMENT (app chooser) ---- */
 function selPlan(el,amt,type){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;planType=type||'Monthly';document.querySelectorAll('.amt').forEach(e=>e.textContent=amt.toLocaleString('en-IN'));}
 
