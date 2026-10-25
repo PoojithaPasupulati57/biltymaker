@@ -343,7 +343,8 @@ async function registerAccount(){
     sessionStorage.removeItem('bm_registration_token');
     sessionStorage.removeItem('bm_registration_email');
 
-    toast('✅ Registration complete! Login and payment setup are next.');
+    toast('✅ Registration complete! Please submit your payment.');
+    go('s-payment');
   } catch (e) {
     toast('❌ Network error. Please try again.');
   }
