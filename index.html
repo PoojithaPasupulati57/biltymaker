@@ -132,6 +132,50 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 </section>
 
 
+<!-- FORGOT PIN / RESET SCREEN -->
+<section class="screen" id="s-reset-pin">
+  <div class="center">
+    <div class="card narrow">
+      <h2>🔐 Reset Your PIN</h2>
+      <p class="sub">Verify your registered email to create a new PIN.</p>
+
+      <label>Email Address</label>
+      <input id="resetEmail" type="email"
+        placeholder="Your registered email">
+
+      <button class="btn" style="width:100%;margin-top:12px"
+        onclick="sendResetOTP()">
+        Send Reset OTP
+      </button>
+
+      <label>Email OTP</label>
+      <input id="resetOtp" type="text" maxlength="6"
+        placeholder="Aa1Bb2" autocomplete="one-time-code">
+
+      <button class="btn ghost" style="width:100%;margin-top:12px"
+        onclick="verifyResetOTP()">
+        Verify OTP
+      </button>
+
+      <label>New 6-digit PIN</label>
+      <input id="newResetPin" type="password"
+        inputmode="numeric" maxlength="6"
+        placeholder="Create a new PIN">
+
+      <button class="btn pink" style="width:100%;margin-top:12px"
+        onclick="submitPinReset()">
+        Save New PIN
+      </button>
+
+      <button class="btn ghost" style="width:100%;margin-top:12px"
+        onclick="go('s-login')">
+        Back to Login
+      </button>
+    </div>
+  </div>
+</section>
+
+  
 <!-- 3 OTP VERIFY -->
 <section class="screen" id="s-otp"><div class="center"><div class="card narrow">
   <h2>🔐 Verify OTP</h2><p class="sub" id="otpMsg">Enter the 6-digit OTP from your email</p>
