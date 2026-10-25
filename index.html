@@ -92,13 +92,42 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 </section>
 
 <!-- 2 LOGIN: email → OTP -->
-<section class="screen" id="s-login"><div class="center"><div class="card narrow">
-  <h2>📧 Login</h2><p class="sub">Enter your email — we'll send a 6-digit OTP</p>
-  <label>Email Address</label>
-  <input id="email" type="email" placeholder="you@example.com">
-  <br><br><button class="btn" style="width:100%" onclick="sendOTP()">Send OTP to Email</button>
-  <p class="note">OTP arrives in your inbox (check Spam once). 100% free.</p>
-</div></div></section>
+
+<!-- 2 LOGIN: Email OTP or PIN -->
+<section class="screen" id="s-login">
+  <div class="center">
+    <div class="card narrow">
+      <h2>📧 Login</h2>
+      <p class="sub">Existing customers can use their PIN. New customers can verify their email.</p>
+
+      <label>Email Address</label>
+      <input id="email" type="email" placeholder="you@example.com">
+      <br><br>
+
+      <label>6-digit PIN (existing customers)</label>
+      <input
+        id="loginPin"
+        type="password"
+        inputmode="numeric"
+        maxlength="6"
+        placeholder="Enter your 6-digit PIN"
+      >
+      <br><br>
+
+      <button class="btn ghost" style="width:100%" onclick="loginWithPin()">
+        Login with PIN
+      </button>
+      <br><br>
+
+      <button class="btn" style="width:100%" onclick="sendOTP()">
+        Send OTP to Email
+      </button>
+
+      <p class="note">New customers: check your inbox and Spam folder for the OTP.</p>
+    </div>
+  </div>
+</section>
+
 
 <!-- 3 OTP VERIFY -->
 <section class="screen" id="s-otp"><div class="center"><div class="card narrow">
