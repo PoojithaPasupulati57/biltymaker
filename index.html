@@ -476,7 +476,24 @@ function enterApp(){
  if(!u.owner&&pay&&pay.expires&&Date.now()>pay.expires){toast('⏳ Plan expired — renew to continue');go('s-pay');return;}
  go('s-app');if(!$('rows').children.length)blankForm();
 }
-function logout(){localStorage.removeItem('bm_user');go('s-home');}
+
+async function logout() {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+  } catch (e) {
+    console.error('Logout request failed');
+  } finally {
+    localStorage.removeItem('bm_user');
+    sessionStorage.removeItem('bm_payment_email');
+    sessionStorage.removeItem('bm_registration_email');
+    sessionStorage.removeItem('bm_registration_token');
+    go('s-home');
+  }
+}
+
 
 /* ---- AI PHOTO → BILTY ---- */
 const DEMO={company:'MOTHER INDIA TRANSPORT',tag:'TRANSPORT CONTRACTORS & COMMISSION AGENTS',
