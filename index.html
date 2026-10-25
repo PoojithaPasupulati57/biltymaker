@@ -242,7 +242,39 @@ function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';cle
 function tab(el,p){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
  ['p-new','p-hist','p-acc'].forEach(id=>$(id).style.display=(id===p)?'block':'none');
  if(p==='p-hist')renderHist(); if(p==='p-acc')renderAcc();}
+  
+/* ---- PIN LOGIN ---- */
+async function loginWithPin() {
+  const email = $('email').value.trim().toLowerCase();
+  const pin = $('loginPin').value.trim();
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return toast('Enter a valid email address.');
+  }
+
+  if (!/^\d{6}$/.test(pin)) {
+    return toast('Enter your 6-digit PIN.');
+  }
+
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, pin })
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'Login failed.'));
+    }
+
+    toast('✅ PIN accepted.');
+    await checkAccountAccess();
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
+}
 /* ---- EMAIL OTP ---- */
 async function sendOTP(){
  const em=$('email').value.trim().toLowerCase();
