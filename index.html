@@ -258,30 +258,47 @@ async function verifyOTP(){
 
 /* ---- UPI PAYMENT (app chooser) ---- */
 function selPlan(el,amt,type){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');planAmt=amt;planType=type||'Monthly';document.querySelectorAll('.amt').forEach(e=>e.textContent=amt.toLocaleString('en-IN'));}
-function payUPI(app){
- const u=JSON.parse(localStorage.getItem('bm_user'));
- const params=`pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('BiltyMaker')}&am=${planAmt}&cu=INR&tn=${encodeURIComponent('BiltyMaker '+planType+' '+u.email)}`;
- const generic='upi://pay?'+params;
- const qr=$('upiQR');qr.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(generic);qr.style.display='block';
- $('qrNote').style.display='block';$('utrBox').style.display='block';
- let link=generic;
- if(/Android/i.test(navigator.userAgent)){
-   link=`intent://upi/pay?${params}#Intent;scheme=upi;package=${UPI_APPS[app]};end`;
- }else if(app==='gpay'){ link='tez://upi/pay?'+params; }
- window.open(link,'_blank');
- toast('Opening '+app.toUpperCase()+'… else scan the QR below');
-}
-async function confirmUPI(){
-  const utr = $('utr').value.trim();
 
-  if (utr.length < 8) {
-    return toast('Enter the UTR number from your UPI app');
+function payUPI(app){
+  const email = sessionStorage.getItem('bm_registration_email');
+
+  if (!email) {
+    return toast('Please verify your email and register first.');
   }
 
-  const u = JSON.parse(localStorage.getItem('bm_user') || 'null');
+  const params =
+    `pa=${encodeURIComponent(UPI_ID)}` +
+    `&pn=${encodeURIComponent('BiltyMaker')}` +
+    `&am=5000&cu=INR` +
+    `&tn=${encodeURIComponent('BiltyMaker Lifetime ' + email)}`;
 
-  if (!u || !u.email) {
-    return toast('Please verify your email first');
+  const link = 'upi://pay?' + params;
+
+  if (app === 'gpay') {
+    window.location.href = 'tez://upi/pay?' + params;
+  } else if (app === 'phonepe') {
+    window.location.href =
+      `intent://upi/pay?${params}#Intent;scheme=upi;package=com.phonepe.app;end`;
+  } else if (app === 'paytm') {
+    window.location.href =
+      `intent://upi/pay?${params}#Intent;scheme=upi;package=net.one97.paytm;end`;
+  } else {
+    window.location.href = link;
+  }
+
+  toast('Complete the ₹5,000 payment in your UPI app, then submit your UTR.');
+}
+
+async function confirmUPI(){
+  const utr = $('utr').value.trim();
+  const email = sessionStorage.getItem('bm_payment_email');
+
+  if (!email) {
+    return toast('Please register your account first.');
+  }
+
+  if (!/^[A-Za-z0-9-]{8,100}$/.test(utr)) {
+    return toast('Enter a valid UPI reference number.');
   }
 
   toast('⏳ Submitting payment for verification…');
@@ -291,8 +308,8 @@ async function confirmUPI(){
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        email: u.email,
-        utr: utr,
+        email,
+        utr,
         amount: 5000,
         plan: 'lifetime'
       })
@@ -304,7 +321,7 @@ async function confirmUPI(){
       return toast('❌ ' + (j.error || 'Could not submit payment'));
     }
 
-    toast('✅ Payment submitted. Access starts after approval.');
+    toast('✅ Payment submitted. Access starts only after approval.');
   } catch (e) {
     toast('❌ Network error. Please try again.');
   }
@@ -339,6 +356,8 @@ async function registerAccount(){
     if (!r.ok || !j.ok) {
       return toast('❌ ' + (j.error || 'Registration failed'));
     }
+
+    sessionStorage.setItem( 'bm_payment_email' email);
 
     sessionStorage.removeItem('bm_registration_token');
     sessionStorage.removeItem('bm_registration_email');
