@@ -275,6 +275,30 @@ async function loginWithPin() {
     toast('❌ Network error. Please try again.');
   }
 }
+
+
+async function checkAccountAccess() {
+  try {
+    const r = await fetch('/api/me', {
+      credentials: 'same-origin'
+    });
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ Please log in again.');
+    }
+
+    $('userTag').textContent = '👤 ' + j.email;
+    go('s-app');
+
+    if (!$('rows').children.length) {
+      blankForm();
+    }
+  } catch (e) {
+    toast('❌ Could not verify your session.');
+  }
+}
+  
 /* ---- EMAIL OTP ---- */
 async function sendOTP(){
  const em=$('email').value.trim().toLowerCase();
