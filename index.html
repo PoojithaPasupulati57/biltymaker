@@ -386,7 +386,7 @@ async function registerAccount(){
       return toast('❌ ' + (j.error || 'Registration failed'));
     }
 
-    sessionStorage.setItem( 'bm_payment_email', email);
+    sessionStorage.setItem('bm_payment_email', email);
 
     sessionStorage.removeItem('bm_registration_token');
     sessionStorage.removeItem('bm_registration_email');
