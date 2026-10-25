@@ -277,11 +277,13 @@ async function loginWithPin() {
 }
 
 
+
 async function checkAccountAccess() {
   try {
     const r = await fetch('/api/me', {
       credentials: 'same-origin'
     });
+
     const j = await r.json();
 
     if (!r.ok || !j.ok) {
@@ -289,6 +291,19 @@ async function checkAccountAccess() {
     }
 
     $('userTag').textContent = '👤 ' + j.email;
+
+    if (!j.hasAccess) {
+      go('s-payment');
+
+      if (j.paymentStatus === 'pending') {
+        toast('⏳ Payment is awaiting verification.');
+      } else {
+        toast('💳 Please complete your ₹5,000 lifetime payment.');
+      }
+
+      return;
+    }
+
     go('s-app');
 
     if (!$('rows').children.length) {
@@ -298,6 +313,7 @@ async function checkAccountAccess() {
     toast('❌ Could not verify your session.');
   }
 }
+
   
 /* ---- EMAIL OTP ---- */
 async function sendOTP(){
