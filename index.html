@@ -247,6 +247,8 @@ async function verifyOTP(){
     sessionStorage.setItem('bm_registration_token', j.registrationToken);
     sessionStorage.setItem('bm_registration_email', otpEmail);
 
+    $('regEmail').value = otpEmail;
+
     toast('✅ Email verified! Continue with account registration.');
     go('s-pay');
   } catch (e) {
