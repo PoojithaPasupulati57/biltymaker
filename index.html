@@ -293,7 +293,7 @@ async function checkAccountAccess() {
     $('userTag').textContent = '👤 ' + j.email;
 
     if (!j.hasAccess) {
-      go('s-payment');
+      go('s-pay');
 
       if (j.paymentStatus === 'pending') {
         toast('⏳ Payment is awaiting verification.');
