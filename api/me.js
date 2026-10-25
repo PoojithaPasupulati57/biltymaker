@@ -30,6 +30,13 @@ export default async function handler(req, res) {
     });
   }
 
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Database is not configured.'
+    });
+  }
+
   try {
     const db = getPool();
     const tokenHash = hashToken(token, secret);
@@ -53,12 +60,44 @@ export default async function handler(req, res) {
       });
     }
 
+    const email = result.rows[0].user_email;
+    const ownerEmail = String(process.env.OWNER_EMAIL || '')
+      .trim()
+      .toLowerCase();
+
+    const isOwner = Boolean(ownerEmail) && email.toLowerCase() === ownerEmail;
+
+    const payment = await db.query(
+      `SELECT status
+       FROM public.payment_requests
+       WHERE user_email = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [email]
+    );
+
+    const paymentApproved = payment.rows.some(
+      row => row.status === 'verified'
+    );
+
+    const hasAccess = isOwner || paymentApproved;
+
     return res.status(200).json({
       ok: true,
-      email: result.rows[0].user_email
+      email,
+      isOwner,
+      paymentStatus: paymentApproved
+        ? 'verified'
+        : payment.rowCount
+          ? payment.rows[0].status
+          : 'not_submitted',
+      hasAccess
     });
   } catch (error) {
-    console.error('Session check failed:', error?.message || 'Unknown error');
+    console.error(
+      'Session check failed:',
+      error?.message || 'Unknown error'
+    );
 
     return res.status(500).json({
       ok: false,
