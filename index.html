@@ -512,13 +512,7 @@ async function registerAccount(){
     toast('❌ Network error. Please try again.');
   }
 }  
-function enterApp(){
- const u=JSON.parse(localStorage.getItem('bm_user'));if(!u)return;
- $('userTag').textContent='👤 '+u.email;
- const pay=JSON.parse(localStorage.getItem('bm_paid_'+u.email)||'null');
- if(!u.owner&&pay&&pay.expires&&Date.now()>pay.expires){toast('⏳ Plan expired — renew to continue');go('s-pay');return;}
- go('s-app');if(!$('rows').children.length)blankForm();
-}
+
 
 async function logout() {
   try {
@@ -655,8 +649,7 @@ function renderAcc(){
   <button class="btn pink" onclick="go('s-pay')">⬆️ Upgrade / Renew</button>
   <button class="btn ghost" onclick="logout()">Logout</button>`;
 }
-const u0=JSON.parse(localStorage.getItem('bm_user')||'null');
-if(u0&&u0.paid)enterApp();
+
 </script>
 </body>
 </html>
