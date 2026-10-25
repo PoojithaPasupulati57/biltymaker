@@ -110,29 +110,35 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 
 <!-- 4 PAYMENT: UPI only, app chooser -->
 <section class="screen" id="s-pay"><div class="center"><div class="card narrow">
-  <h2>💳 Choose a Plan</h2><p class="sub">Pay once — start creating bilties</p>
- <div class="plans" style="grid-template-columns:1fr">
-  <div class="plan sel">
-    <h4>Lifetime Access</h4>
-    <div class="price">₹5,000</div>
-    <small>One-time payment · No renewal · No expiry</small>
+
+<!-- PAYMENT AND ACCOUNT REGISTRATION -->
+<section class="screen" id="s-pay">
+  <div class="center">
+    <div class="card narrow">
+      <h2>📝 Complete Your Registration</h2>
+      <p class="sub">Your email has been verified</p>
+
+      <label>Email</label>
+      <input id="regEmail" type="email" readonly>
+
+      <label>Mobile Number</label>
+      <input id="regPhone" type="tel" inputmode="numeric"
+        maxlength="10" placeholder="10-digit mobile number">
+
+      <label>Create 6-digit PIN</label>
+      <input id="regPin" type="password" inputmode="numeric"
+        maxlength="6" placeholder="Create your PIN">
+
+      <button class="btn" style="width:100%;margin-top:12px"
+        onclick="registerAccount()">
+        Continue
+      </button>
+
+      <p class="note">After registration, submit your payment for manual approval.</p>
+    </div>
   </div>
-</div>
-  <label>Pay ₹<span class="amt">5,000</span> — choose your UPI app:</label>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0">
-    <button class="btn ghost" style="padding:10px" onclick="payUPI('gpay')">🟢 GPay</button>
-    <button class="btn ghost" style="padding:10px" onclick="payUPI('phonepe')">🟣 PhonePe</button>
-    <button class="btn ghost" style="padding:10px" onclick="payUPI('paytm')">🔵 Paytm</button>
-  </div>
-  <img id="upiQR" style="display:none;width:200px;margin:6px auto 0;border-radius:10px;border:1px solid #ddd">
-  <p class="note" id="qrNote" style="display:none;text-align:center">Desktop? Scan this QR with any UPI app.</p>
-  <div id="utrBox" style="display:none;margin-top:14px">
-    <label>Paid? Enter UPI reference no. (UTR) from your UPI app</label>
-    <input id="utr" placeholder="e.g. 412345678901">
-    <button class="btn" style="width:100%;margin-top:8px" onclick="confirmUPI()">✅ Activate My Account</button>
-  </div>
-  <p class="note">Money goes straight to the owner's UPI — 0% fees.</p>
-</div></div></section>
+</section>
+
 
 <!-- 5 APP -->
 <section class="screen" id="s-app">
@@ -304,6 +310,43 @@ async function confirmUPI(){
     toast('❌ Network error. Please try again.');
   }
 }
+async function registerAccount(){
+  const email = sessionStorage.getItem('bm_registration_email');
+  const registrationToken = sessionStorage.getItem('bm_registration_token');
+  const phone = $('regPhone').value.trim();
+  const pin = $('regPin').value.trim();
+
+  if (!email || !registrationToken) {
+    return toast('Please verify your email again.');
+  }
+
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    return toast('Enter a valid 10-digit mobile number.');
+  }
+
+  if (!/^\d{6}$/.test(pin)) {
+    return toast('PIN must contain 6 digits.');
+  }
+
+  try {
+    const r = await fetch('/api/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, phone, pin, registrationToken})
+    });
+
+    const j = await r.json();
+
+    if (!r.ok || !j.ok) {
+      return toast('❌ ' + (j.error || 'Registration failed'));
+    }
+
+    sessionStorage.removeItem('bm_registration_token');
+    toast('✅ Registration complete.');
+  } catch (e) {
+    toast('❌ Network error. Please try again.');
+  }
+}  
 function enterApp(){
  const u=JSON.parse(localStorage.getItem('bm_user'));if(!u)return;
  $('userTag').textContent='👤 '+u.email;
