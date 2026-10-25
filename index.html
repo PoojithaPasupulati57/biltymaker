@@ -166,7 +166,49 @@ label{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin:8px 
 </section>
 
 
+
+<!-- 4 PAYMENT SCREEN -->
+<section class="screen" id="s-payment">
+  <div class="center">
+    <div class="card narrow">
+      <h2>💳 BiltyMaker Lifetime Plan</h2>
+      <p class="sub">One-time payment of ₹5,000. No recurring charges.</p>
+
+      <p><b>UPI ID:</b> 9346013045@ybl</p>
+      <p class="note">
+        Pay using your UPI app, then enter your UTR/reference number.
+        Access starts only after manual payment approval.
+      </p>
+
+      <button class="btn" style="width:100%;margin-top:12px"
+        onclick="payUPI('gpay')">
+        Pay with Google Pay
+      </button>
+
+      <button class="btn ghost" style="width:100%;margin-top:10px"
+        onclick="payUPI('phonepe')">
+        Pay with PhonePe
+      </button>
+
+      <button class="btn ghost" style="width:100%;margin-top:10px"
+        onclick="payUPI('paytm')">
+        Pay with Paytm
+      </button>
+
+      <label>UPI UTR / Reference Number</label>
+      <input id="utr" type="text"
+        placeholder="Enter payment reference number">
+
+      <button class="btn pink" style="width:100%;margin-top:12px"
+        onclick="confirmUPI()">
+        Submit Payment for Verification
+      </button>
+    </div>
+  </div>
+</section>
+
 <!-- 5 APP -->
+  
 <section class="screen" id="s-app">
   <div class="topbar"><div class="wrap">
     <b>🚚 BiltyMaker</b><span id="userTag"></span>
