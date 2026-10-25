@@ -3,8 +3,6 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { getPool } from '../lib/db.js';
 
-const WINDOW_MS = 5 * 60 * 1000;
-
 const U = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const L = 'abcdefghijklmnopqrstuvwxyz';
 const D = '0123456789';
@@ -50,7 +48,7 @@ export default async function handler(req, res) {
   ) {
     return res.status(400).json({
       ok: false,
-      error: 'Invalid email'
+      error: 'Enter a valid email address.'
     });
   }
 
@@ -65,10 +63,9 @@ export default async function handler(req, res) {
     !gmailPassword ||
     !process.env.DATABASE_URL
   ) {
-    console.error('OTP service configuration is incomplete');
     return res.status(500).json({
       ok: false,
-      error: 'Email service is not configured'
+      error: 'Email service is not configured.'
     });
   }
 
@@ -77,7 +74,23 @@ export default async function handler(req, res) {
   try {
     const db = getPool();
 
-    // Limit OTP requests to 3 per email in 15 minutes.
+    // Existing registered customers should log in.
+    const existing = await db.query(
+      `SELECT id
+       FROM public.app_users
+       WHERE email = $1
+       LIMIT 1`,
+      [email]
+    );
+
+    if (existing.rowCount) {
+      return res.status(409).json({
+        ok: false,
+        error: 'This email is already registered. Please log in instead.'
+      });
+    }
+
+    // Limit requests to 3 per email in 15 minutes.
     const rate = await db.query(
       `SELECT COUNT(*)::int AS total
        FROM public.email_otp_challenges
@@ -96,7 +109,7 @@ export default async function handler(req, res) {
     const code = generateOtp();
     const otpHash = hashOtp(email, code, secret);
 
-    // Only the newest challenge can be used.
+    // Only the newest OTP can be used.
     await db.query(
       `UPDATE public.email_otp_challenges
        SET consumed_at = NOW()
@@ -136,8 +149,7 @@ export default async function handler(req, res) {
       subject: 'Your BiltyMaker verification code',
       text:
         `Your BiltyMaker verification code is: ${code}\n\n` +
-        'This code expires in 5 minutes. ' +
-        'If you did not request it, ignore this email.',
+        'This code expires in 5 minutes. If you did not request it, ignore this email.',
       html:
         '<div style="font-family:Arial;padding:24px;background:#f6f4ec">' +
         '<h2 style="color:#145c33">BiltyMaker verification</h2>' +
