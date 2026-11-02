@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
     const isOwner = Boolean(ownerEmail) && email.toLowerCase() === ownerEmail;
 
-    const payment = await db.query(
+    const latestPayment = await db.query(
       `SELECT status
        FROM public.payment_requests
        WHERE user_email = $1
@@ -76,9 +76,17 @@ export default async function handler(req, res) {
       [email]
     );
 
-    const paymentApproved = payment.rows.some(
-      row => row.status === 'verified'
+    // Any verified payment grants lifetime access, even if a newer request is pending.
+    const verifiedPayment = await db.query(
+      `SELECT id
+       FROM public.payment_requests
+       WHERE user_email = $1
+         AND status = 'verified'
+       LIMIT 1`,
+      [email]
     );
+
+    const paymentApproved = verifiedPayment.rowCount > 0;
 
     const hasAccess = isOwner || paymentApproved;
 
@@ -88,8 +96,8 @@ export default async function handler(req, res) {
       isOwner,
       paymentStatus: paymentApproved
         ? 'verified'
-        : payment.rowCount
-          ? payment.rows[0].status
+        : latestPayment.rowCount
+          ? latestPayment.rows[0].status
           : 'not_submitted',
       hasAccess
     });
