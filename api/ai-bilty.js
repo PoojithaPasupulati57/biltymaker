@@ -111,7 +111,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (image.length > 10 * 1024 * 1024) {
+  if (image.length > 7 * 1024 * 1024) {
     return res.status(413).json({
       ok: false,
       error: 'Image is too large. Please use an image under 7 MB.'
@@ -133,11 +133,13 @@ Rules: numbers as numbers; empty string if not visible; keep original spelling.`
 
   try {
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' +
-        encodeURIComponent(apiKey),
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: [{
             parts: [
